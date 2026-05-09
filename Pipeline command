@@ -1,0 +1,127 @@
+Application Deployment _Trend
+
+Docker: Setup and clone
+ 
+ 
+cat > Dockerfile << 'EOF'
+FROM nginx:alpine
+COPY dist/ /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+EOF
+cat Dockerfile
+ 
+ 
+Docker Output:
+ 
+http://localhost:3000
+ 
+Docker login details
+ 
+ 
+ 
+CreatingK8 file
+ 
+mkdir -p k8s
+
+cat > k8s/deployment.yaml << 'EOF'
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trend-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: trend-app
+  template:
+    metadata:
+      labels:
+        app: trend-app
+    spec:
+      containers:
+      - name: trend-app
+        image: vkeshwam1/trend-app:latest
+        ports:
+        - containerPort: 80
+EOF
+
+cat > k8s/service.yaml << 'EOF'
+apiVersion: v1
+kind: Service
+metadata:
+  name: trend-app-service
+spec:
+  selector:
+    app: trend-app
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+  type: LoadBalancer
+EOF
+
+ls k8s/
+
+ 
+GitHub Push
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+
+ 
+ 
+URL: http://a5e6d1ddbfe6d41fca85908668d26a04-1028940182.us-east-1.elb.amazonaws.com
+ 
+
+URL: https://us-east-1.console.aws.amazon.com/eks/home?region=us-east-1#/clusters
+ 
+
+Terraform Ip: 50.17.139.255
+ 
+ 
+
+ 
+ 
+
+pipeline {
+    agent any
+    stages {
+        stage('Checkout') {
+            steps {
+                echo 'Cloning TrendStore repository...'
+                git branch: 'main', url: 'https://github.com/vkeshwam1/Trend.git'
+            }
+        }
+        stage('Docker Build') {
+            steps {
+                echo 'Building Docker image...'
+                sh 'docker build -t vkeshwam1/trend-app:latest .'
+                sh 'docker images | grep trend-app'
+            }
+        }
+        stage('Deploy to EKS') {
+            steps {
+                echo 'Deploying to EKS...'
+                sh 'kubectl apply -f k8s/deployment.yaml'
+                sh 'kubectl apply -f k8s/service.yaml'
+                sh 'kubectl get pods'
+                sh 'kubectl get svc'
+            }
+        }
+    }
+    post {
+        success { echo 'Deployment SUCCESS!' }
+        failure { echo 'Deployment FAILED!' }
+    }
+}
+ 
+    
+
+  
